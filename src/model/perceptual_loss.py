@@ -15,15 +15,15 @@ class PerceptualLoss(nn.Module):
         self.weights = layers.values()
         self.loss_fn = loss_fn
         self.features = list()
-        for id, w in layers.items():
+        for id in layers.keys():
             layer = self.features_model[id]
-            hook_fn = partial(self.save_features_hook, w=w)
+            hook_fn = partial(self.save_features_hook)
             layer.register_forward_hook(hook_fn)
 
     def forward(self, predict, target):
         predict_features = self.get_features(predict)
         target_features = self.get_features(target)
-        loss = 0
+        loss = torch.zeros(1, device=predict.device)
         for p_f, t_f, w in zip(predict_features, target_features, self.weights):
             loss += self.loss_fn(p_f, t_f) * w
         return loss
@@ -31,7 +31,7 @@ class PerceptualLoss(nn.Module):
     def get_features(self, x):
         self.features_model(x)
         features = self.features
-        self.features.clear()
+        self.features = list()
         return features
 
     def save_features_hook(self, module, input, output):
@@ -39,6 +39,6 @@ class PerceptualLoss(nn.Module):
 
 
     @classmethod
-    def from_VGG19(cls, layers={1:1.0/32, 6:1.0/16, 11:1.0/8, 20:1.0/4, 29:1.0}, loss_fn=nn.MSELoss):
+    def from_VGG19(cls, layers={1:1.0/32, 6:1.0/16, 11:1.0/8, 20:1.0/4, 29:1.0}, loss_fn=nn.L1Loss()):
         model = models.vgg19(pretrained=True).features
         return cls(model, layers, loss_fn)

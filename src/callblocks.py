@@ -106,6 +106,19 @@ class GANEvolutionRecorder(Callback):
       display(HTML(ani.to_jshtml()))
 
 
+class AddPerceptualLoss(Callback):
+    def __init__(self, perceptual_loss):
+        super(Callback, self).__init__()
+        self.perceptual_loss = perceptual_loss
+
+    def after_loss(self):
+        if self.gen_mode:
+            real = self.yb[0]
+            fake = self.pred
+            loss = self.perceptual_loss(real, fake)
+            self.learn.loss_grad += loss
+            self.learn.loss += loss.clone() # TODO what does it do?
+
 '''
 class ConsistencyRegularization(Callback):
     def __init__(self, cutmix_inst:CustomCutMix, policy_fn):
@@ -132,7 +145,7 @@ class ConsistencyRegularization(Callback):
             seg = self.xb[1]
             consistancy += self.consistancy_mul * unet_consistancy_loss(dis, real, fake, seg, self.cutmix_inst)
             self.loss_grad += consistancy
-            self.loss += consistancy.clone() # TODO зачем надо?
+            self.loss += consistancy.clone() # TODO what does it do?
 
 
     def after_epoch(self):
